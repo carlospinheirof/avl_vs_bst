@@ -10,13 +10,16 @@ typedef struct bt{
 	int value;
 	struct bt *right;
 	struct bt *left;
+	int height;
 }bt;
 
 /* Cria a bst */
 bt* bst_create(int value);
 
 /* Insere na bst um valor. */
-bt* bst_insert(bt* bst, int value, int balance);
+bt* bst_insert(bt* bst, int value);
+
+bt* avl_insert(bt* node, int key);
 
 /* Insere na bst um array de valores. */
 bt* bst_insert_array(bt* bst, int arr[], int size, int balance);
@@ -113,17 +116,17 @@ bt* bst_balance(bt* bst){
 	return bst;
 }
 
-bt* bst_insert(bt* bst, int value, int balance){
+bt* bst_insert(bt* bst, int value){
 	if(bst == NULL){
 		bst = bst_create(value);
 	}else if(bst->value > value){
-		bst->left = bst_insert(bst->left, value, balance);
+		bst->left = bst_insert(bst->left, value);
 		//não necessário                                    ////mudança
 		/*if(balance){
 			bst = bst_balance(bst);
 		}*/
 	}else{
-		bst->right = bst_insert(bst->right, value, balance);
+		bst->right = bst_insert(bst->right, value);
 		//não necessário                                    ////mudança
 		/*if(balance){
 			bst = bst_balance(bst);
@@ -132,12 +135,58 @@ bt* bst_insert(bt* bst, int value, int balance){
 	return bst;
 }
 
+bt* avl_insert(bt* node, int key)
+{
+    /* 1.  Perform the normal BST rotation */
+    if (node == NULL)
+        node = bst_create(key);
+ 
+    if (key < node->value)
+        node->left  = bst_insert(node->left, key);
+    else
+        node->right = bst_insert(node->right, key);
+ 
+    /* 2. Update height of this ancestor node */
+    node->height = max(bst_height(node->left), bst_height(node->right)) + 1;
+ 
+    /* 3. Get the balance factor of this ancestor node to check whether
+       this node became unbalanced */
+    int balance = balance_factor(node);
+ 
+    // If this node becomes unbalanced, then there are 4 cases
+ 
+    // Left Left Case
+    if (balance > 1 && key < node->left->value)
+        return bst_rotate_right(node);
+ 
+    // Right Right Case
+    if (balance < -1 && key > node->right->value)
+        return bst_rotate_left(node);
+ 
+    // Left Right Case
+    if (balance > 1 && key > node->left->value)
+    {
+        node->left =  bst_rotate_left(node->left);
+        return bst_rotate_right(node);
+    }
+ 
+    // Right Left Case
+    if (balance < -1 && key < node->right->value)
+    {
+        node->right = bst_rotate_right(node->right);
+        return bst_rotate_left(node);
+    }
+ 
+    /* return the (unchanged) node pointer */
+    return node;
+}
+
 bt* bst_insert_array(bt* bst, int arr[], int size, int balance){
 
 	int i;
 
 	for(i = 0; i < size; i++){
-		bst = bst_insert(bst, arr[i], balance);
+		bst = bst_insert(bst, arr[i]);
 	}
 
 	return bst;
@@ -226,47 +275,34 @@ int is_it_an_avl(bt *bst)
 		return 0;
 	}
 }
-bt* balance_everything(bt *bst)
-{
-	if(bst == NULL)
-	{
-		return NULL;
-	}
-	//vamos olhar para os filhinhos primeiro
-	if(!bst_is_empty(bst->right) && !is_it_an_avl(bst->right))
-	{	//filhinho da direita está balanceado? se não meu amigo balanceia isso.
-		bst->right = balance_everything(bst->right);
-	}
-	if(!bst_is_empty(bst->right) && !is_it_an_avl(bst->right))
-	{	//filhinho da esquerda ta se sentindo muito achandoq ue ja é avl, será que é?
+
+bt* balance_everything(bt *bst){
+	if(!bst_is_empty(bst->left) && !is_it_an_avl(bst->left)){
 		bst->left = balance_everything(bst->left);
 	}
-	// ta na hora do pai hahaha
-	int is_it_alright = is_it_an_avl(bst);
-	if(is_it_alright)
-	{
-		return bst;
+
+	if(!is_it_an_avl(bst) && !bst_is_empty(bst->right) 
+		&& !is_it_an_avl(bst->right)){
+		bst->right = balance_everything(bst->right);
 	}
-	else
-	{
-		if(balance_factor(bst) < -1)
-		{
-			/*braço direito ta doendo*/
-			if(balance_factor(bst->right) > 0)
-			{ // aquele tipico RL
-				bst->right = bst_rotate_right(bst->right);
-			}
-			bst->left = bst_rotate_left(bst->left);
-		}
-		else
-		{
-			/*braço esquerdo ta doendo*/
-			if(balance_factor(bst->left) < 0)
-			{ // aquele tipico RL
+
+	if(!is_it_an_avl(bst)){
+		if(balance_factor(bst)>1){
+			if(balance_factor(bst->left) < 0){
 				bst->left = bst_rotate_left(bst->left);
 			}
-			bst->right = bst_rotate_right(bst->right);
+
+			bst = bst_rotate_right(bst);
 		}
-		return bst;
+
+		else if(balance_factor(bst) < 1){
+			if(balance_factor(bst->right) > 0){
+				bst->right = bst_rotate_right(bst->right);
+			}
+
+			bst = bst_rotate_left(bst);
+		}
 	}
+
+	return bst;
 }

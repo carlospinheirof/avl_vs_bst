@@ -78,8 +78,8 @@ int main(int argc, char *argv[]){
 		}else{
 			sorted = i;
 		}
-		bst = bst_insert(bst, sorted, 0);
-		avl = bst_insert(avl, sorted, 1);
+		bst = bst_insert(bst, sorted);
+		avl = bst_insert(avl, sorted);
 	}
 	avl = balance_everything(avl);
 
